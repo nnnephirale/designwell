@@ -8,6 +8,7 @@ import { groupSections } from "./lib/groups";
 import { Sidebar } from "./components/Sidebar";
 import { SectionView } from "./components/SectionView";
 import { SettingsSheet } from "./components/SettingsSheet";
+import { isOwnerEmail } from "./lib/owner";
 import "./app.css";
 
 export default function App() {
@@ -23,11 +24,14 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [hdrHidden, setHdrHidden] = useState(false);
 
-  // edit when signed in (writes sync to cloud), in dev, or when opened as a
-  // local file — the self-reference case: full editing, localStorage-first,
-  // export to JSON, no backend required
-  const canEdit =
-    session !== null || import.meta.env.DEV || location.protocol === "file:";
+  // "local" = dev server or the built file opened from disk — the trusted
+  // self-reference case: full view + edit, localStorage-first, no backend.
+  const local = import.meta.env.DEV || location.protocol === "file:";
+  const isOwner = isOwnerEmail(session?.user?.email);
+  // on the hosted site the content is private: only the owner (signed in) sees
+  // it; everyone else gets the locked screen. locally it's always unlocked.
+  const canView = local || isOwner;
+  const canEdit = canView;
 
   useEffect(() => {
     initSync();
@@ -87,20 +91,22 @@ export default function App() {
   return (
     <>
       <header className={`hdr ${hdrHidden ? "hidden" : ""}`}>
-        <button
-          className="toc-toggle"
-          onClick={() => setTocOpen(true)}
-          aria-label="contents"
-        >
-          <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-            <path
-              d="M2 3.5h11M2 7.5h8M2 11.5h11"
-              stroke="currentColor"
-              strokeWidth="1.3"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
+        {canView && (
+          <button
+            className="toc-toggle"
+            onClick={() => setTocOpen(true)}
+            aria-label="contents"
+          >
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+              <path
+                d="M2 3.5h11M2 7.5h8M2 11.5h11"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        )}
         <span
           className="hdr-title"
           onPointerDown={pressStart}
@@ -124,18 +130,33 @@ export default function App() {
         )}
       </header>
 
-      <div className="layout">
-        <Sidebar
-          groups={groups}
-          mode={tocMode}
-          onMode={setTocMode}
-          activeId={activeId}
-          open={tocOpen}
-          onClose={() => setTocOpen(false)}
-        />
-        <main className="main">
-          <div className="canvas">
-            {groups.map((g) => (
+      {!canView ? (
+        <main className="main locked">
+          <div className="lock-card">
+            <div className="lock-mark">✦</div>
+            <h1>a private notebook</h1>
+            <p>
+              designwell is a personal reference of interface craft. the
+              contents are visible only to its owner.
+            </p>
+            <button className="btn" onClick={() => setSettingsOpen(true)}>
+              sign in
+            </button>
+          </div>
+        </main>
+      ) : (
+        <div className="layout">
+          <Sidebar
+            groups={groups}
+            mode={tocMode}
+            onMode={setTocMode}
+            activeId={activeId}
+            open={tocOpen}
+            onClose={() => setTocOpen(false)}
+          />
+          <main className="main">
+            <div className="canvas">
+              {groups.map((g) => (
               <div key={g.key}>
                 <div className="group-head">
                   <span className="microcaps">{g.label}</span>
@@ -155,16 +176,17 @@ export default function App() {
                 ))}
               </div>
             ))}
-            {view === "edit" && (
-              <div className="new-section">
-                <button className="btn" onClick={newSection}>
-                  + new section
-                </button>
-              </div>
-            )}
-          </div>
-        </main>
-      </div>
+              {view === "edit" && (
+                <div className="new-section">
+                  <button className="btn" onClick={newSection}>
+                    + new section
+                  </button>
+                </div>
+              )}
+            </div>
+          </main>
+        </div>
+      )}
 
       {undo && (
         <div className="pill-status">

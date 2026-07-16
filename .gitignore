@@ -25,3 +25,6 @@ dist-ssr
 
 # unused local font originals (app serves public/fonts)
 /fonts/
+
+# private one-time content seed (contains the document — never publish)
+/supabase-seed-content.sql

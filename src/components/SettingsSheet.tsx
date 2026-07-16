@@ -10,7 +10,7 @@ export function SettingsSheet({
   session: Session | null;
   onClose: () => void;
 }) {
-  const [email, setEmail] = useState("marilyn@wearemakerlab.com");
+  const [email, setEmail] = useState("marilynliewpj@gmail.com");
   const [code, setCode] = useState("");
   const [stage, setStage] = useState<"email" | "code">("email");
   const [busy, setBusy] = useState(false);
