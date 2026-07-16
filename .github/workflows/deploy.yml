@@ -26,7 +26,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      # npm install (not ci): a macOS-generated lockfile omits Linux-only
+      # optional native deps, which makes strict `npm ci` reject it on the runner
+      - run: npm install --no-audit --no-fund
       - run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
