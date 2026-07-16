@@ -1,14 +1,20 @@
 # designwell — living doc of interface craft
 
-A personal, continuously-updated reference site compiling good UI / design-engineering
-practice, with live reproductions of every technique. v1 content = Jakub Krehel's
-"Details That Make Interfaces Feel Better" (12 techniques), rewritten in the doc's own
-voice with per-section credit chips linking to the originals. Emil Kowalski's articles
-(clip-path, 7 animation tips, train your judgement) are the planned v2 feed, entered
-through the site's own editor.
+A **private, self-reference** doc of good UI / design-engineering practice, with live
+reproductions of every technique. v1 content = Jakub Krehel's "Details That Make
+Interfaces Feel Better" (12 techniques), rewritten in the doc's own voice with
+per-section credit chips linking to the originals. Emil Kowalski's articles (clip-path,
+7 animation tips, train your judgement) are the planned v2 feed, entered through the
+site's own editor.
 
-**Copyright stance:** prose is original (techniques/facts aren't copyrightable, article
-text is); demos are re-implemented from scratch; every section credits + links the source.
+**Status (16 Jul 2026):** live at **https://nnnephirale.github.io/designwell/**
+(repo `nnnephirale/designwell`, public). Deployed and building green. The content is
+**gated behind owner login** — see Privacy below; a signed-out visitor sees only a
+locked screen.
+
+**Copyright / privacy stance:** prose is original (techniques/facts aren't copyrightable,
+article text is); demos are re-implemented from scratch; every section credits + links the
+source. It's kept private anyway — self-reference only, not distributed.
 
 ## Stack & layout
 
@@ -23,7 +29,25 @@ Vite + React + TS. Static build (`base: './'`) → GitHub Pages via Actions
   stack (6s pill), export. localStorage is the **source of truth**.
 - `src/lib/sync.ts` — Supabase layered on top (Deposits pattern, never a dependency).
   One row (`dwd_document`, id `main`) = whole doc JSON; last-write-wins on `updatedAt`;
-  pull-on-open + ~1.2s debounced push (only when signed in).
+  pull-on-open + ~1.2s debounced push (only when signed in). **Empty-doc guard:** pushNow
+  refuses to sync a doc with zero sections — added 16 Jul 2026 after a fresh device
+  (empty bundle + empty localStorage) synced over the remote row and wiped the content.
+  Recovery: content regenerated into `supabase-seed-content.sql` (gitignored) from git
+  `2314a08` + the three Emil Kowalski v2 sections; run it once in the SQL editor and
+  every signed-in device pulls it (fresh `updatedAt` wins).
+- `src/lib/import.ts` + `components/ImportSheet.tsx` — **the lazy capture path** (16 Jul
+  2026): header "import" button → paste a URL → `r.jina.ai/<url>` returns the page as
+  clean markdown (free, CORS-open, no key) → line-based parser chunks it into sections
+  (one per h1/h2; paragraphs/code fences/images/blockquotes → blocks; h3+ → heading
+  blocks) with the credit auto-filled (author guessed from domain, title from the reader).
+  Reader h2s arrive as self-links (`## [Title](url#anchor)`) — parse with a GREEDY regex,
+  titles can contain parens like `scale(0)`. "Embed live demos" (default on) appends one
+  `iframe` block per section pointing at `url#anchor` — the original page lazy-loaded and
+  scrolled to that section, so interactive examples stay live without re-implementation.
+  Tweet/x status URLs skip the reader → single section with a
+  `platform.twitter.com/embed/Tweet.html?id=…` iframe. Everything lands editable; the
+  editor is for fine control after capture. This replaces hand-authoring content — the
+  doc is a private, login-gated clippings archive (read-it-later pattern).
 - `src/lib/groups.ts` — shared grouping for TOC + canvas (topic mode / author→article mode).
 - `src/components/` — Sidebar (TOC, scroll-spy), SectionView (credit chip + block list +
   edit chrome), BlockView (all block renderers, read+edit), AddMenu (video-style add-block
@@ -106,8 +130,13 @@ mirrors its sources so the live examples feel native (self-reference only, not d
 
 ## Open items
 
-1. Run `supabase-setup.sql` in the shared project (one-time) → then sign in on each device.
-2. v2: feed Emil Kowalski's three articles through the editor; add registry demos per
-   technique as needed.
+1. **Restore the content** — push this build, open the site signed in, Settings →
+   "import content.json" → pick `content-restore.json` (repo root, gitignored: the
+   recovered 12 Jakub sections + 3 hand-written Emil sections). It stamps a fresh
+   updatedAt and syncs everywhere — no SQL editor. (`supabase-seed-content.sql` remains
+   as the alternative path.) Then re-capture Emil's three articles properly via the new
+   import button if the full-text clippings are preferred over the hand-written digests.
+2. Push before editing on a fresh device (empty-doc sync guard + importer live only
+   after deploy). Credit chips are hover-revealed on the section title (visible on touch).
 3. Image uploads are URL-only for now (Supabase Storage is a possible v2).
 4. Drag-reorder (vs nudge) — revisit only with a design that survives long documents.

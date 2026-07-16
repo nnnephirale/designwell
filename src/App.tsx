@@ -8,6 +8,7 @@ import { groupSections } from "./lib/groups";
 import { Sidebar } from "./components/Sidebar";
 import { SectionView } from "./components/SectionView";
 import { SettingsSheet } from "./components/SettingsSheet";
+import { ImportSheet } from "./components/ImportSheet";
 import { isOwnerEmail } from "./lib/owner";
 import "./app.css";
 
@@ -21,6 +22,7 @@ export default function App() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [tocOpen, setTocOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
   const [hdrHidden, setHdrHidden] = useState(false);
 
@@ -102,14 +104,28 @@ export default function App() {
         <span className="hdr-sub">a living doc of interface craft</span>
         <span className="hdr-spacer" />
         {canEdit && (
-          <div className="seg">
-            <button className={view === "read" ? "on" : ""} onClick={() => setView("read")}>
-              read
+          <>
+            <button className="hdr-sync" onClick={() => setImportOpen(true)} title="import from URL">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+                <path
+                  d="M8 10.5v-7m0 0L5.5 6M8 3.5 10.5 6M3.5 12.5h9"
+                  stroke="currentColor"
+                  strokeWidth="1.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              <span>import</span>
             </button>
-            <button className={view === "edit" ? "on" : ""} onClick={() => setView("edit")}>
-              edit
-            </button>
-          </div>
+            <div className="seg">
+              <button className={view === "read" ? "on" : ""} onClick={() => setView("read")}>
+                read
+              </button>
+              <button className={view === "edit" ? "on" : ""} onClick={() => setView("edit")}>
+                edit
+              </button>
+            </div>
+          </>
         )}
         <button
           className="hdr-sync"
@@ -204,6 +220,9 @@ export default function App() {
 
       {settingsOpen && (
         <SettingsSheet session={session} onClose={() => setSettingsOpen(false)} />
+      )}
+      {importOpen && (
+        <ImportSheet topics={doc.topics} onClose={() => setImportOpen(false)} />
       )}
     </>
   );

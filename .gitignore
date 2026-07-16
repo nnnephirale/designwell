@@ -28,3 +28,6 @@ dist-ssr
 
 # private one-time content seed (contains the document — never publish)
 /supabase-seed-content.sql
+
+# private content backup for one-click restore via Settings (never publish)
+/content-restore.json

@@ -96,6 +96,9 @@ let pushTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function pushNow(doc: Doc) {
   if (!session) return; // writes are gated; reads are public
+  // never sync an empty doc over the remote — a fresh device (empty bundle,
+  // empty localStorage) must not clobber the real document (16 Jul 2026 loss)
+  if (doc.sections.length === 0) return;
   try {
     setSyncState("syncing");
     const { error } = await sb.from(TABLE).upsert({

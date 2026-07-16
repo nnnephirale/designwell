@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { exportDoc } from "../lib/store";
+import type { Doc } from "../types";
+import { exportDoc, setDoc } from "../lib/store";
 import { sendSignInCode, signOut, syncNow, verifySignInCode } from "../lib/sync";
 
 export function SettingsSheet({
@@ -42,6 +43,19 @@ export function SettingsSheet({
     await syncNow();
     setBusy(false);
     setMsg("synced");
+  };
+
+  const fileRef = useRef<HTMLInputElement>(null);
+  const importJson = async (file: File) => {
+    try {
+      const parsed = JSON.parse(await file.text()) as Doc;
+      if (!parsed || !Array.isArray(parsed.sections) || !Array.isArray(parsed.topics))
+        throw new Error("not a designwell content file");
+      setDoc(parsed); // stamps a fresh updatedAt → wins on every device, auto-pushes
+      setMsg(`restored ${parsed.sections.length} sections — syncing to other devices`);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "couldn't read that file");
+    }
   };
 
   return (
@@ -105,15 +119,30 @@ export function SettingsSheet({
             className="btn"
             onClick={() => {
               exportDoc();
-              setMsg("content.json downloaded — commit it to the repo as src/content/seed.json");
+              setMsg("content.json downloaded — keep it somewhere safe");
             }}
           >
             export content.json
           </button>
+          <button className="btn" onClick={() => fileRef.current?.click()}>
+            import content.json
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) importJson(f);
+              e.target.value = "";
+            }}
+          />
         </div>
         <div className="hint">
-          localStorage is the source of truth; supabase syncs it across devices; the
-          exported json committed to the repo is the belt-and-suspenders backup.
+          localStorage is the source of truth; supabase syncs it across devices.
+          export regularly; import replaces the whole doc from a backup file and
+          syncs it out — the recovery path if anything is ever lost again.
         </div>
       </div>
     </div>
