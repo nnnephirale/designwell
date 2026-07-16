@@ -67,15 +67,6 @@ export default function App() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  /* long-press the title → settings (hidden power-user affordance) */
-  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pressStart = () => {
-    pressTimer.current = setTimeout(() => setSettingsOpen(true), 650);
-  };
-  const pressEnd = () => {
-    if (pressTimer.current) clearTimeout(pressTimer.current);
-  };
-
   const groups = groupSections(doc, tocMode);
 
   const newSection = () => {
@@ -107,15 +98,7 @@ export default function App() {
             </svg>
           </button>
         )}
-        <span
-          className="hdr-title"
-          onPointerDown={pressStart}
-          onPointerUp={pressEnd}
-          onPointerLeave={pressEnd}
-          onContextMenu={(e) => e.preventDefault()}
-        >
-          designwell
-        </span>
+        <span className="hdr-title">designwell</span>
         <span className="hdr-sub">a living doc of interface craft</span>
         <span className="hdr-spacer" />
         {canEdit && (
@@ -128,6 +111,30 @@ export default function App() {
             </button>
           </div>
         )}
+        <button
+          className="hdr-sync"
+          onClick={() => setSettingsOpen(true)}
+          title={session ? "cloud sync & backup" : "sign in to sync"}
+        >
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+            <path
+              d="M4.5 12.5a3 3 0 0 1-.3-6 4 4 0 0 1 7.7-1.1 2.8 2.8 0 0 1-.4 5.6"
+              stroke="currentColor"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M8 7v5m0 0 1.6-1.6M8 12l-1.6-1.6"
+              stroke="currentColor"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <span>{session ? "synced" : "sign in"}</span>
+          {session && <span className="hdr-sync-dot" />}
+        </button>
       </header>
 
       {!canView ? (

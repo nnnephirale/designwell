@@ -100,6 +100,31 @@
 .hdr-spacer {
   flex: 1;
 }
+.hdr-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--ink-2);
+  padding: 6px 12px;
+  border-radius: var(--r-ctl);
+  background: rgba(0, 0, 0, 0.04);
+  transition: background 0.3s var(--ease), color 0.3s var(--ease), transform 0.15s var(--ease);
+}
+.hdr-sync:hover {
+  background: rgba(0, 0, 0, 0.07);
+  color: var(--ink-0);
+}
+.hdr-sync:active {
+  transform: scale(0.98);
+}
+.hdr-sync-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #57996b;
+  box-shadow: 0 0 0 3px rgba(87, 153, 107, 0.15);
+}
 .hdr .toc-toggle {
   display: none;
 }
