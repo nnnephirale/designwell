@@ -1,6 +1,7 @@
 import type { Block, Section, Topic } from "../types";
 import {
   addSection,
+  getDoc,
   insertBlock,
   moveBlock,
   moveSection,
@@ -44,10 +45,13 @@ export function SectionView({
 
   const deleteSection = () => {
     const snapshot = s;
+    const all = getDoc().sections;
+    const i = all.findIndex((x) => x.id === s.id);
+    const afterId = i > 0 ? all[i - 1].id : null;
     removeSection(s.id);
     pushUndo({
       label: "section deleted",
-      restore: () => addSection(snapshot),
+      restore: () => addSection(snapshot, afterId),
     });
   };
 

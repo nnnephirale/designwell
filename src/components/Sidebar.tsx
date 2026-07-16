@@ -1,5 +1,6 @@
 import type { Group } from "../lib/groups";
 import type { TocMode } from "../types";
+import { addSection, getDoc, pushUndo, removeSection } from "../lib/store";
 
 export function Sidebar({
   groups,
@@ -8,6 +9,7 @@ export function Sidebar({
   activeId,
   open,
   onClose,
+  editing,
 }: {
   groups: Group[];
   mode: TocMode;
@@ -15,11 +17,26 @@ export function Sidebar({
   activeId: string | null;
   open: boolean;
   onClose: () => void;
+  editing: boolean;
 }) {
   const jump = (id: string) => {
     document.getElementById(`s-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
     onClose();
   };
+
+  const deleteSection = (id: string) => {
+    const sections = getDoc().sections;
+    const i = sections.findIndex((s) => s.id === id);
+    if (i === -1) return;
+    const snapshot = sections[i];
+    const afterId = i > 0 ? sections[i - 1].id : null;
+    removeSection(id);
+    pushUndo({
+      label: `“${snapshot.title || "Untitled"}” deleted`,
+      restore: () => addSection(snapshot, afterId),
+    });
+  };
+
   return (
     <>
       <div className={`scrim ${open ? "on" : ""}`} onClick={onClose} />
@@ -51,13 +68,23 @@ export function Sidebar({
                   <div key={sub.key}>
                     {sub.label && <div className="toc-sub">{sub.label}</div>}
                     {sub.sections.map((s) => (
-                      <button
-                        key={s.id}
-                        className={`toc-item ${activeId === s.id ? "on" : ""}`}
-                        onClick={() => jump(s.id)}
-                      >
-                        {s.title || "Untitled"}
-                      </button>
+                      <div className="toc-row" key={s.id}>
+                        <button
+                          className={`toc-item ${activeId === s.id ? "on" : ""}`}
+                          onClick={() => jump(s.id)}
+                        >
+                          {s.title || "Untitled"}
+                        </button>
+                        {editing && (
+                          <button
+                            className="toc-del"
+                            title="delete section"
+                            onClick={() => deleteSection(s.id)}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
                     ))}
                   </div>
                 ))}

@@ -67,10 +67,16 @@ export function updateSection(id: string, patch: Partial<Section>) {
   });
 }
 
-export function addSection(section: Section, afterId?: string) {
+/** afterId: string = insert after that section, null = insert first, undefined = append */
+export function addSection(section: Section, afterId?: string | null) {
   const sections = [...doc.sections];
-  const i = afterId ? sections.findIndex((s) => s.id === afterId) : -1;
-  sections.splice(i === -1 ? sections.length : i + 1, 0, section);
+  const i =
+    afterId === null
+      ? -1
+      : afterId
+        ? sections.findIndex((s) => s.id === afterId)
+        : sections.length - 1;
+  sections.splice(i + 1, 0, section);
   setDoc({ ...doc, sections });
 }
 

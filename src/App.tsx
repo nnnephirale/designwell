@@ -176,6 +176,7 @@ export default function App() {
             activeId={activeId}
             open={tocOpen}
             onClose={() => setTocOpen(false)}
+            editing={view === "edit"}
           />
           <main className="main">
             <div className="canvas">

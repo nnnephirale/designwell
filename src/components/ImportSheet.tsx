@@ -1,10 +1,11 @@
 import { useState } from "react";
 import type { Section, Topic } from "../types";
 import { addSection } from "../lib/store";
+import type { FetchedArticle } from "../lib/import";
 import {
   authorGuess,
   fetchArticle,
-  markdownToSections,
+  parseArticle,
   tweetToSection,
 } from "../lib/import";
 
@@ -18,7 +19,7 @@ export function ImportSheet({
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [markdown, setMarkdown] = useState<string | null>(null);
+  const [fetched, setFetched] = useState<FetchedArticle | null>(null);
   const [author, setAuthor] = useState("");
   const [article, setArticle] = useState("");
   const [topicId, setTopicId] = useState(topics[0]?.id ?? "");
@@ -26,8 +27,8 @@ export function ImportSheet({
 
   const isTweet = /(?:twitter|x)\.com\/\w+\/status\/\d+/.test(url);
 
-  const preview: Section[] | null = markdown
-    ? markdownToSections(markdown, { url, author, article, topicId, embedLive })
+  const preview: Section[] | null = fetched
+    ? parseArticle(fetched, { url, author, article, topicId, embedLive })
     : null;
 
   const fetchIt = async () => {
@@ -35,7 +36,7 @@ export function ImportSheet({
     setErr(null);
     try {
       const a = await fetchArticle(url.trim());
-      setMarkdown(a.markdown);
+      setFetched(a);
       setArticle(a.title);
       setAuthor(authorGuess(url));
     } catch (e) {
@@ -74,7 +75,7 @@ export function ImportSheet({
             value={url}
             onChange={(e) => {
               setUrl(e.target.value);
-              setMarkdown(null);
+              setFetched(null);
               setErr(null);
             }}
             placeholder="https://…"
@@ -91,7 +92,7 @@ export function ImportSheet({
 
         {err && <div className="hint">couldn't read that page — {err}</div>}
 
-        {(markdown || isTweet) && (
+        {(fetched || isTweet) && (
           <>
             {!isTweet && (
               <>
