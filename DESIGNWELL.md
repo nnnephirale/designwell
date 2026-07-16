@@ -89,9 +89,20 @@ mirrors its sources so the live examples feel native (self-reference only, not d
 - `npm run dev` (preview launch config "designwell", port 5183; `autoPort` on and
   vite.config reads `PORT`, so parallel sessions get their own port). Seed content is the
   permanent mock data. localStorage edits shadow the seed — clear `dwd-doc` to reset.
-- Deploy = push to `main` → Actions builds → Pages. **Verify the build actually served**
-  (builds silently stall): `curl -s https://nnnephirale.github.io/designwell/ | grep assets/index`
-  and compare the bundle hash with `dist/`.
+- **Single-file build** (`vite-plugin-singlefile` + `assetsInlineLimit: MAX`): `npm run
+  build` emits one self-contained `dist/index.html` — JS, CSS, and all 4 Cursor Gothic
+  fonts (base64) inlined, zero external refs. Fonts live in `src/fonts/` and route through
+  the CSS asset pipeline so they inline (NOT `public/` — public assets are copied verbatim,
+  never inlined). Open `dist/index.html` straight from disk (`file://`) with no server; the
+  inline `<script type=module>` runs from disk fine.
+- **Editing from a local file:** `canEdit` is true when signed in, in dev, OR when
+  `location.protocol === 'file:'` — so opening the built file locally gives full edit +
+  localStorage persistence + export-to-JSON with no backend. (Served over http without a
+  session, it's read-only until sign-in.)
+- Deploy = push to `main` → Actions builds → Pages. The single file deploys as-is.
+  **Verify the build actually served** (builds silently stall):
+  `curl -s https://nnnephirale.github.io/designwell/ | grep -o 'data:font/woff2' | head -1`
+  (should echo once — proves the inlined bundle, not a stale build).
 
 ## Open items
 

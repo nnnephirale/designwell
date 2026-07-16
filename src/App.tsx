@@ -23,7 +23,11 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [hdrHidden, setHdrHidden] = useState(false);
 
-  const canEdit = session !== null || import.meta.env.DEV;
+  // edit when signed in (writes sync to cloud), in dev, or when opened as a
+  // local file — the self-reference case: full editing, localStorage-first,
+  // export to JSON, no backend required
+  const canEdit =
+    session !== null || import.meta.env.DEV || location.protocol === "file:";
 
   useEffect(() => {
     initSync();
