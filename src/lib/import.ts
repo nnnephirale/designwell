@@ -114,14 +114,22 @@ class SectionBuilder {
 
   close() {
     if (!this.current) return;
-    const { section, anchor } = this.current;
+    const { section } = this.current;
     if (this.opts.embedLive && section.blocks.length) {
+      // croppable live embed of the original. Anchors proved useless (most pages
+      // don't cooperate → the frame showed the whole site from the top), so the
+      // window is framed by offsetY instead: successive sections get a rough
+      // starting offset, then you scrub OFFSET/HEIGHT in edit mode to frame the
+      // demo exactly. pageW freezes the original's desktop layout so the crop
+      // holds on mobile.
       section.blocks.push({
         id: uid(),
         type: "iframe",
-        src: anchor ? `${this.opts.url}#${anchor}` : this.opts.url,
+        src: this.opts.url,
         height: 460,
-        caption: "live — this part of the original page",
+        offsetY: this.sections.length * 900,
+        pageW: 700,
+        caption: "live from the original — scrub offset in edit to frame it",
       });
     }
     if (section.blocks.length) this.sections.push(section);

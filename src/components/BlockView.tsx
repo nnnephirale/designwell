@@ -133,6 +133,73 @@ function CustomDemo({ block }: { block: Extract<Block, { type: "demo" }> }) {
   );
 }
 
+/* Live embed of the ORIGINAL page, cropped to one region — the answer to
+   "reproductions never match the original's finesse". A tall iframe renders the
+   real page; the wrapper clips a window `height` tall starting `offsetY` px down.
+   `pageW` freezes the embedded page's layout width and scales it to fit our
+   column, so a crop calibrated on desktop stays framed on mobile. The frame is
+   made taller than the page so the inner document can't scroll and break the
+   crop (scroll happens via offsetY, not the page). */
+function CroppedFrame({ block }: { block: Extract<Block, { type: "iframe" }> }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [cw, setCw] = useState(0);
+  // many crops of the same heavy page would mean many live instances — mount the
+  // iframe only while its window is near the viewport, unmount once it's far
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setCw(el.clientWidth));
+    ro.observe(el);
+    setCw(el.clientWidth);
+    const io = new IntersectionObserver(([e]) => setNear(e.isIntersecting), {
+      rootMargin: "900px 0px",
+    });
+    io.observe(el);
+    return () => {
+      ro.disconnect();
+      io.disconnect();
+    };
+  }, []);
+  // a cross-origin iframe swallows wheel events — without a shield, scrolling
+  // the doc stalls whenever the cursor is over an embed. Click to interact
+  // (shield lifts), mouse out to get scroll back. Maps-embed pattern.
+  const [interactive, setInteractive] = useState(false);
+  const offsetY = block.offsetY ?? 0;
+  const winH = block.height ?? 420;
+  const scale = block.pageW && cw ? cw / block.pageW : 1;
+  return (
+    <div
+      className="blk-iframe"
+      ref={wrapRef}
+      style={{ height: Math.round(winH * scale) }}
+      onMouseLeave={() => setInteractive(false)}
+    >
+      {near && (
+        <iframe
+          title="embed"
+          src={block.src}
+          scrolling="no"
+          allow="clipboard-write; fullscreen"
+          style={{
+            width: block.pageW ?? "100%",
+            height: offsetY + winH + 400,
+            border: "none",
+            display: "block",
+            transform: `scale(${scale}) translateY(${-offsetY}px)`,
+            transformOrigin: "0 0",
+          }}
+        />
+      )}
+      {near && !interactive && (
+        <button className="frame-shield" onClick={() => setInteractive(true)}>
+          <span>click to interact</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 export function BlockView({
   block,
   editing,
@@ -339,15 +406,7 @@ export function BlockView({
       return (
         <div>
           {block.src ? (
-            <div className="blk-iframe">
-              <iframe
-                title="embed"
-                src={block.src}
-                style={{ height: block.height ?? 420 }}
-                loading="lazy"
-                allow="clipboard-write; fullscreen"
-              />
-            </div>
+            <CroppedFrame block={block} />
           ) : (
             <div
               style={{
@@ -363,23 +422,56 @@ export function BlockView({
             </div>
           )}
           {editing ? (
-            <div className="blk-fieldrow">
-              <span className="microcaps">url</span>
-              <input
-                type="url"
-                value={block.src}
-                style={{ flex: 1 }}
-                placeholder="https://…"
-                onChange={(e) => onPatch({ src: e.target.value })}
-              />
-              <span className="microcaps">height</span>
-              <Slider
-                min={160}
-                max={800}
-                value={block.height ?? 420}
-                onChange={(height) => onPatch({ height })}
-              />
-            </div>
+            <>
+              <div className="blk-fieldrow">
+                <span className="microcaps">url</span>
+                <input
+                  type="url"
+                  value={block.src}
+                  style={{ flex: 1 }}
+                  placeholder="https://…"
+                  onChange={(e) => onPatch({ src: e.target.value })}
+                />
+                <span className="microcaps">caption</span>
+                <input
+                  type="text"
+                  value={block.caption ?? ""}
+                  onChange={(e) => onPatch({ caption: e.target.value })}
+                />
+              </div>
+              <div className="blk-fieldrow">
+                <span className="microcaps">offset</span>
+                <Slider
+                  min={0}
+                  max={20000}
+                  value={block.offsetY ?? 0}
+                  onChange={(offsetY) => onPatch({ offsetY })}
+                />
+                <input
+                  type="number"
+                  className="blk-num"
+                  value={block.offsetY ?? 0}
+                  onChange={(e) => onPatch({ offsetY: Math.max(0, Number(e.target.value) || 0) })}
+                />
+                <span className="microcaps">height</span>
+                <Slider
+                  min={160}
+                  max={1100}
+                  value={block.height ?? 420}
+                  onChange={(height) => onPatch({ height })}
+                />
+                <span className="microcaps">page w</span>
+                <input
+                  type="number"
+                  className="blk-num"
+                  placeholder="fluid"
+                  value={block.pageW ?? ""}
+                  onChange={(e) =>
+                    onPatch({ pageW: e.target.value ? Number(e.target.value) : undefined })
+                  }
+                />
+              </div>
+            </>
           ) : (
             block.caption && <div className="blk-caption">{block.caption}</div>
           )}

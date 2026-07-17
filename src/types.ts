@@ -27,7 +27,15 @@ export type Block =
       height?: number;
       caption?: string;
     }
-  | { id: string; type: "iframe"; src: string; height?: number; caption?: string }
+  | {
+      id: string;
+      type: "iframe";
+      src: string;
+      height?: number; // visible window height, in page px
+      caption?: string;
+      offsetY?: number; // crop: how far down the original page the window starts
+      pageW?: number; // crop: freeze the embedded page's layout width (scales to fit)
+    }
   | { id: string; type: "spacer"; height: number }
   | { id: string; type: "divider" };
 

@@ -45,8 +45,9 @@ Vite + React + TS. Static build (`base: './'`) → GitHub Pages via Actions
   blocks) with the credit auto-filled (author guessed from domain, title from the reader).
   Reader h2s arrive as self-links (`## [Title](url#anchor)`) — parse with a GREEDY regex,
   titles can contain parens like `scale(0)`. "Embed live demos" (default on) appends one
-  `iframe` block per section pointing at `url#anchor` — the original page lazy-loaded and
-  scrolled to that section, so interactive examples stay live without re-implementation.
+  **croppable live embed** per section (see below) with a rough stepped starting offset —
+  scrub OFFSET/HEIGHT in edit mode to frame each demo. (Anchored `url#anchor` iframes were
+  v1 and failed: most pages ignore the anchor → whole site from the top.)
   Tweet/x status URLs skip the reader → single section with a
   `platform.twitter.com/embed/Tweet.html?id=…` iframe. Everything lands editable; the
   editor is for fine control after capture. This replaces hand-authoring content — the
@@ -55,10 +56,26 @@ Vite + React + TS. Static build (`base: './'`) → GitHub Pages via Actions
 - `src/components/` — Sidebar (TOC, scroll-spy), SectionView (credit chip + block list +
   edit chrome), BlockView (all block renderers, read+edit), AddMenu (video-style add-block
   dropdown), SettingsSheet (OTP sign-in, sync now, export).
-- `src/demos/` — the 12 built-in live reproductions, registered in `registry.tsx`.
-  A demo block is either `demoId` (registry) or custom `html` in a sandboxed srcdoc
-  iframe with an "inherit site styles" toggle (default on; off = respect the original's
-  own fonts/spacing — the sanctioned exception to the unified look, same as iframe blocks).
+- **Croppable live embeds (17 Jul 2026 — the finesse answer):** the `iframe` block takes
+  `offsetY` (how far down the original page the window starts), `height` (window height,
+  page px) and `pageW` (freezes the embedded page's layout width; scales to fit our column
+  so crops hold on mobile). `CroppedFrame` in BlockView renders a tall iframe
+  (`offsetY+height+400`) shifted by `transform: scale(cw/pageW) translateY(-offsetY)` —
+  shows the REAL original, pixel-perfect, cropped to just its demo. Reproductions can't
+  match the source's finesse; embedding the original is the only honest replication.
+  Guards: (1) iframe mounts only within 900px of the viewport (IntersectionObserver) and
+  unmounts when far — N crops of the same page would otherwise be N live site instances
+  (froze the tab at 12); (2) a transparent "click to interact" shield sits on top — a
+  cross-origin iframe swallows wheel events, so without it, page scrolling stalls whenever
+  the cursor crosses an embed. Check `frame-ancestors` before relying on a site
+  (`curl -sI url | grep -i frame`); jakub.kr + emilkowal.ski are both embeddable.
+  Jakub's 12 sections in `content-restore.json` now use calibrated crops (measured on his
+  page at 700px viewport, 17 Jul 2026) instead of the registry reproductions.
+- `src/demos/` — the 12 built-in reproductions remain registered in `registry.tsx`
+  (offline/file:// fallback, still in the add-menu), but the doc now prefers cropped
+  originals. A demo block is either `demoId` (registry) or custom `html` in a sandboxed
+  srcdoc iframe with an "inherit site styles" toggle (default on; off = respect the
+  original's own fonts/spacing).
 
 ## Privacy / auth / sync (Deposits pattern — see 19_DEPOSITS handover for rationale)
 
