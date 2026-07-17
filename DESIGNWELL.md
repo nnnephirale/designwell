@@ -21,9 +21,12 @@ source. It's kept private anyway — self-reference only, not distributed.
 Vite + React + TS. Static build (`base: './'`) → GitHub Pages via Actions
 (`.github/workflows/deploy.yml`). No router — one long document.
 
-- `src/content/seed.json` — the bundled doc (topics + sections + blocks). Also the
-  first-paint fallback and the backup target (Settings → export downloads `content.json`;
-  commit it back here periodically).
+- `src/content/seed.json` — **intentionally empty** (topics only, `sections: []`, old
+  `updatedAt` so any real remote wins). Content is NOT bundled — it lives only in the
+  private Supabase row, so the public bundle leaks nothing (see Privacy). On first paint a
+  signed-in owner pulls the real doc; a fresh device shows the locked screen until sign-in.
+  Backups are the Settings → export `content.json` (keep private, do NOT commit — it's the
+  content) and the gitignored `content-restore.json` / `supabase-seed-content.sql`.
 - `src/types.ts` — Doc/Section/Block model. Section = `{title, topicId, source{author,article,url}, blocks[]}`.
 - `src/lib/store.ts` — localStorage-first store (`dwd-doc` key), mutations, quiet-undo
   stack (6s pill), export. localStorage is the **source of truth**.
@@ -57,18 +60,32 @@ Vite + React + TS. Static build (`base: './'`) → GitHub Pages via Actions
   iframe with an "inherit site styles" toggle (default on; off = respect the original's
   own fonts/spacing — the sanctioned exception to the unified look, same as iframe blocks).
 
-## Auth / sync (Deposits pattern — see 19_DEPOSITS handover for full rationale)
+## Privacy / auth / sync (Deposits pattern — see 19_DEPOSITS handover for rationale)
 
+**Private model.** Content is owner-only. It lives ONLY in the Supabase row; the bundle
+ships empty; a non-owner sees the locked "a private notebook" screen. Repo is public, but
+holds no content (git history from before `a7a929d` still does — re-authored public
+article material, not secret, so left as-is).
+
+- **Owner allowlist:** `src/lib/owner.ts` = `marilynliewpj@gmail.com`,
+  `marilyn@wearemakerlab.com`. Must stay in sync with the RLS allowlist in
+  `supabase-setup.sql`. Marilyn signs in with the **gmail**.
+- **Gating (App.tsx):** `local = DEV || location.protocol === 'file:'`;
+  `isOwner = isOwnerEmail(session.email)`; `canView = canEdit = local || isOwner`.
+  Locally (dev or the built file opened from disk) it's always unlocked. On the hosted
+  site, only the signed-in owner sees content + the read/edit toggle; everyone else gets
+  the locked screen with a sign-in button.
+- **RLS (owner-only read AND write):** `supabase-setup.sql` gates select/insert/update to
+  the allowlist via `auth.jwt() ->> 'email'`. Idempotent (`drop policy if exists` first) —
+  Supabase's "destructive" warning is just those drops; safe, scoped to `dwd_document`.
 - Email OTP **typed code, never magic link** (iOS home-screen container issue).
   Don't hardcode code length (project setting; hers is 8 digits).
 - `persistSession + autoRefreshToken` → one sign-in per device/surface, permanent.
 - Shared Supabase project `uauqqdaalnddedgjdgcg` (same as SSaved/Deposits — keeps the
   free tier alive; the keep-alive cron lives in the deposits repo).
-- RLS: **public read** (live site shows latest edits without redeploy), **write only for
-  `marilyn@wearemakerlab.com`** (open OTP signups would otherwise let anyone write).
-  Run `supabase-setup.sql` once in the shared project's SQL editor — still pending as of
-  16 Jul 2026. Until then the app is pure-local (sync silently offline).
-- Edit mode gating: the read/edit toggle appears when signed in (always in local dev).
+- **Sign-in UI:** a visible header **sync button** ("sign in" → "synced" + green dot when
+  authed) opens the Settings sheet. The old long-press-the-title affordance was removed.
+  The sign-in email field is blank by default (don't expose the owner address).
 
 ## Editing model
 
@@ -90,9 +107,10 @@ mirrors its sources so the live examples feel native (self-reference only, not d
 
 - Palette lifted from jakub.kr: flat `#fcfcfc` page, greys `#f6f6f6/#f0f0f0/#e8e8e8`,
   ink `#202020`, paragraph `#424242`, secondary `#646464/#838383`. Rose still = undo only.
-- Type: **Cursor Gothic** self-hosted (`public/fonts/`, static 400/700 only — no mediums;
-  @font-face lives INLINE in index.html with `./fonts/` relative paths because `base:'./'`
-  breaks absolute `/fonts` urls in bundled CSS on Pages). Has `tnum` (tabular demo needs it).
+- Type: **Cursor Gothic** self-hosted in `src/fonts/` (NOT `public/` — routed through the
+  CSS asset pipeline so the single-file build base64-inlines them). `@font-face` lives in
+  `src/index.css`; index.html no longer has font markup. All 4 weights (400/700 ×
+  roman/italic). Has `tnum` (tabular demo needs it).
 - jakub's signature scale: headings same 16px as body, weight carries hierarchy
   (his font-[550] ≈ our 700), tracking -0.01em body / -0.014em headings (cursor.com cue).
 - Spacing per jakub exactly: 692px column (`max-w-173`), 64px collapsed margins between
